@@ -4,23 +4,21 @@ from threading import Thread
 from Queue import LifoQueue
 from threading import active_count as threading_active_count
 from lxml import etree, html
-import HTMLParser
 from posixpath import basename
 import socks
 from sockshandler import SocksiPyHandler
 
+m_log_file_name = os.path.basename(__file__) + ".log"
 m_failed_urls_filename = "failed_urls.txt"
 m_profiles_filename = "profiles_done.db"
 m_csv_filename = "results.csv"
+m_imgdir_path = "images"
 
-m_log_file_name = os.path.basename(__file__) + ".log"
 m_num_workers = 1
 m_socket_timeout = 15
 m_retry_timeout = 5
 m_retries_num = 20
 m_worker_timeout = 5
-
-m_imgdir_path = "images"
 
 m_csv_col_names = ["app_name", "app_release_date", "author", "price", "img_filename", "url"]
 
@@ -79,6 +77,8 @@ class DbStuff:
 
 			self.m_total_done += 1
 
+			self.m_csv_file.flush()
+
 		finally:
 			self.m_db_lock.release()
 
@@ -93,12 +93,6 @@ class DbStuff:
 			"CREATE TABLE IF NOT EXISTS Entries (Fingerprint Text PRIMARY KEY)")
 
 		return
-
-	def lock_acquire(self):
-		self.m_db_lock.acquire()
-
-	def lock_release(self):
-		self.m_db_lock.release()
 
 	def sql_add_url_fingerprint_no_lock(self, Fingerprint):
 
@@ -158,10 +152,7 @@ class MyLogger():
 		if not self.filestream is None:
 			return
 
-		try:
-			self.filestream = codecs.open(log_file_name, mode='w+', encoding='utf-8')
-		except:
-			self.filestream = None
+		self.filestream = codecs.open(log_file_name, mode='w+', encoding='utf-8')
 
 		return
 
@@ -217,17 +208,16 @@ log = root_logger.log
 
 
 class HtmlTool(object):
-	h = HTMLParser.HTMLParser()
 
 	@staticmethod
 	def get_attrib(tree, xpath, checkSingle=False):
 		res = tree.xpath(xpath)
 		if checkSingle:
-			if len(res) != 1:
+			if not res or len(res) != 1:
 				return ""
 
-		if len(res) and (res[0] != "" and not res[0] is None):
-			return res[0]
+		if res and res[0]:
+			return unicode(res[0])
 
 		return ""
 
@@ -235,9 +225,9 @@ class HtmlTool(object):
 	def get_single_result_text(tree, xpath, checkSingle=False):
 		res = tree.xpath(xpath)
 		if checkSingle:
-			if len(res) != 1:
+			if not res or len(res) != 1:
 				return ""
-		if len(res) and (res[0] != "" and not res[0] is None):
+		if res and res[0] is not None:
 			return HtmlTool.get_text_content(etree.tostring(res[0]))
 
 		return ""
