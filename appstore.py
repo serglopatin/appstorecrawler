@@ -77,7 +77,7 @@ class DbStuff:
 
 			self.m_total_done += 1
 
-			self.m_csv_file.flush()
+			#self.m_csv_file.flush()
 
 		finally:
 			self.m_db_lock.release()
