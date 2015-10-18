@@ -9,8 +9,6 @@ from posixpath import basename
 import socks
 from sockshandler import SocksiPyHandler
 
-m_db = None
-
 m_failed_urls_filename = "failed_urls.txt"
 m_profiles_filename = "profiles_done.db"
 m_csv_filename = "results.csv"
@@ -49,6 +47,8 @@ class DbStuff:
 		self.failed_urls_filename = failed_urls_filename
 		with open(self.failed_urls_filename, 'w'):
 			pass
+
+		self.__db_create()
 
 	def csv_flush(self):
 		self.m_csv_file.flush()
@@ -90,7 +90,7 @@ class DbStuff:
 
 		return
 
-	def db_create(self):
+	def __db_create(self):
 
 		self.db_con = lite.connect(self.m_db_name, check_same_thread=False)
 
@@ -661,14 +661,12 @@ def parse_app1(url, queue, worker, iter_count):
 
 def do_job():
 
-	m_db = DbStuff(m_profiles_filename, m_csv_filename, m_csv_col_names, m_failed_urls_filename)
-	m_db.db_create()
-
+	db = DbStuff(m_profiles_filename, m_csv_filename, m_csv_col_names, m_failed_urls_filename)
 
 	m_workers = []
 	m_queue = LifoQueue()
 
-	monitor = Monitor(m_queue, m_db)
+	monitor = Monitor(m_queue, db)
 	monitor.start()
 
 	if not os.path.exists(m_imgdir_path):
@@ -682,7 +680,7 @@ def do_job():
 			m_queue,
 			socks_proxy_port=m_socks_proxy_base_port+i if m_socks_proxy_base_port else 0,
 			thread_id=i+1,
-			db= m_db)
+			db=db)
 
 		m_workers.append(worker)
 
@@ -708,7 +706,7 @@ def do_job():
 	log("job finished")
 	monitor.finish()
 
-	m_db.close()
+	db.close()
 
 	return
 
