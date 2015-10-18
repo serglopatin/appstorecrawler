@@ -9,7 +9,6 @@ from posixpath import basename
 import socks
 from sockshandler import SocksiPyHandler
 
-
 m_db = None
 
 m_failed_urls_filename = "failed_urls.txt"
@@ -23,7 +22,6 @@ m_retry_timeout = 5
 m_retries_num = 20
 m_worker_timeout = 5
 
-
 m_imgdir_path = "images"
 
 m_csv_col_names = ["app_name", "app_release_date", "author", "price", "img_filename", "url"]
@@ -32,7 +30,7 @@ m_socks_proxy_base_port = 0 #if 0 socks proxy not used
 m_socks_host = "127.0.0.1"
 
 
-class dbstuff:
+class DbStuff:
 	m_db_name = ""
 
 	def __init__(self, dbname, csv_file_name, csv_col_names, failed_urls_filename):
@@ -663,7 +661,7 @@ def parse_app1(url, queue, worker, iter_count):
 
 def do_job():
 
-	m_db = dbstuff(m_profiles_filename, m_csv_filename, m_csv_col_names, m_failed_urls_filename)
+	m_db = DbStuff(m_profiles_filename, m_csv_filename, m_csv_col_names, m_failed_urls_filename)
 	m_db.db_create()
 
 
