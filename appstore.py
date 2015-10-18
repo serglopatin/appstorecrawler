@@ -24,7 +24,7 @@ m_imgdir_path = "images"
 
 m_csv_col_names = ["app_name", "app_release_date", "author", "price", "img_filename", "url"]
 
-m_socks_proxy_base_port = 0 #if 0 socks proxy not used
+m_socks_proxy_base_port = 0  # if 0 socks proxy not used
 m_socks_host = "127.0.0.1"
 
 
@@ -33,13 +33,13 @@ class DbStuff:
 
 	def __init__(self, dbname, csv_file_name, csv_col_names, failed_urls_filename):
 		self.m_db_name = dbname
-		self.m_db_lock = thread.allocate_lock() #Condition()
+		self.m_db_lock = thread.allocate_lock()
 
 		self.m_csv_file = open(csv_file_name, 'a+')
 		self.m_csv_writer = csv.writer(self.m_csv_file)
 
 		csv_size = os.path.getsize(csv_file_name)
-		if csv_size==0:
+		if csv_size == 0:
 			self.m_csv_writer.writerow(csv_col_names)
 
 		self.m_total_done = 0
@@ -50,16 +50,12 @@ class DbStuff:
 
 		self.__db_create()
 
-	def csv_flush(self):
-		self.m_csv_file.flush()
-
 	def close(self):
 		if not self.db_con is None:
 			self.db_con.commit()
 			self.db_con.close()
 		if not self.m_csv_file is None:
 			self.m_csv_file.close()
-
 
 	def csv_save_item(self, item, url_fingerprint, encode=True):
 
@@ -71,8 +67,8 @@ class DbStuff:
 				return
 
 			for i in range(len(item)):
-				if item[i]=="--":
-					item[i]=''
+				if item[i] == "--":
+					item[i] = ''
 
 			if encode:
 				self.m_csv_writer.writerow([s.encode("utf-8") for s in item])
@@ -81,9 +77,7 @@ class DbStuff:
 
 			self.sql_add_url_fingerprint_no_lock(url_fingerprint)
 
-			self.m_csv_file.flush()
-
-			self.m_total_done +=1
+			self.m_total_done += 1
 
 		finally:
 			self.m_db_lock.release()
@@ -96,7 +90,7 @@ class DbStuff:
 
 		cur = self.db_con.cursor()
 		cur.execute(
-				"CREATE TABLE IF NOT EXISTS Entries (Fingerprint Text PRIMARY KEY)")
+			"CREATE TABLE IF NOT EXISTS Entries (Fingerprint Text PRIMARY KEY)")
 
 		return
 
@@ -152,10 +146,7 @@ class DbStuff:
 		return
 
 
-
-
 class MyLogger():
-
 	def __init__(self):
 
 		self.console_stream = sys.stdout
@@ -220,16 +211,12 @@ class MyLogger():
 		return
 
 
-
 root_logger = MyLogger()
 
 log = root_logger.log
 
 
-
-
 class HtmlTool(object):
-
 	h = HTMLParser.HTMLParser()
 
 	@staticmethod
@@ -265,7 +252,6 @@ class HtmlTool(object):
 
 		return HtmlTool.__clean_text(tree.text_content())
 
-
 	@staticmethod
 	def __clean_text(text, preserveNewLines=False):
 		cleanText = text
@@ -277,9 +263,7 @@ class HtmlTool(object):
 		return cleanText
 
 
-
-def get_page_content(url, socks_port = 0,  log_prefix=""):
-
+def get_page_content(url, socks_port=0, log_prefix=""):
 	for i in range(m_retries_num):
 
 		content = get_page_content_try(url, socks_port, log_prefix)
@@ -289,21 +273,19 @@ def get_page_content(url, socks_port = 0,  log_prefix=""):
 		log(log_prefix, "ERROR get_page_content, retrying ", url)
 		time.sleep(m_retry_timeout)
 
-
 	log(log_prefix, "FATAL ERROR get_page_content ", url)
 
 	return ""
 
 
-def get_page_content_try(url, socks_port = 0, log_prefix = ""):
-
+def get_page_content_try(url, socks_port=0, log_prefix=""):
 	try:
 
 		if socks_port:
 			opener = urllib2.build_opener(SocksiPyHandler(socks.PROXY_TYPE_SOCKS5, m_socks_host, socks_port))
-			req = opener.open(url, timeout= m_socket_timeout)
+			req = opener.open(url, timeout=m_socket_timeout)
 		else:
-			req = urllib2.urlopen(url, timeout= m_socket_timeout)
+			req = urllib2.urlopen(url, timeout=m_socket_timeout)
 
 		content = req.read()
 
@@ -313,10 +295,7 @@ def get_page_content_try(url, socks_port = 0, log_prefix = ""):
 		log(log_prefix, str(ex))
 		return ""
 
-
 	return content
-
-
 
 
 class Monitor(Thread):
@@ -339,11 +318,11 @@ class Monitor(Thread):
 				log("Monitor exit")
 				break
 
-			log("Elements in Queue: ", self.queue.qsize(), " Active Threads: ", threading_active_count(), " Total done: ", self.db.m_total_done)
+			log("Elements in Queue: ", self.queue.qsize(), " Active Threads: ", threading_active_count(),
+				" Total done: ", self.db.m_total_done)
 
 
 class Worker(Thread):
-
 	def __init__(self, queue, socks_proxy_port, thread_id, db):
 		Thread.__init__(self)
 		self.queue = queue
@@ -357,7 +336,7 @@ class Worker(Thread):
 			while True:
 				queue_item = self.queue.get()
 				if queue_item == None:
-					self.queue.put(None) # Notify the next worker
+					self.queue.put(None)  # Notify the next worker
 					log(self.worker_index, " no more tasks, exit")
 					break
 
@@ -380,17 +359,22 @@ class Worker(Thread):
 		return
 
 
+def get_app_id_from_url(url):
+	parse_object = urlparse.urlparse(url)
+	app_id = basename(parse_object.path)
+	if not app_id.startswith("id"):
+		return ""
+
+	return app_id
 
 def is_cat_ok(tree):
-
 	res = tree.xpath("//div[@id='genre-nav']")
-	if res is None or len(res)!=1:
-		return  False
+	if res is None or len(res) != 1:
+		return False
 	return True
 
 
 def parse_main(url, queue, worker, iter_count):
-
 	page = get_page_content(url, worker.socks_proxy_port, worker.log_prefix)
 	if not page:
 		log(worker.log_prefix, "ERROR get_page_content ", url)
@@ -400,15 +384,16 @@ def parse_main(url, queue, worker, iter_count):
 	tree = etree.HTML(page)
 
 	if not is_cat_ok(tree):
-		if iter_count<10:
-			queue.put((url, parse_main, iter_count+1))
-			log(worker.log_prefix, "FATALL retrying#",str(iter_count), " ", url)
+		if iter_count < 10:
+			queue.put((url, parse_main, iter_count + 1))
+			log(worker.log_prefix, "FATALL retrying#", str(iter_count), " ", url)
 		else:
 			worker.db.add_failed_url(url)
 			log(worker.log_prefix, "FATALL err ", url)
 		return
 
-	cats = tree.xpath("//div[@id='genre-nav']//ul[contains(@class,'list column first')]/li/a[contains(@class,'top-level-genre')]")
+	cats = tree.xpath(
+		"//div[@id='genre-nav']//ul[contains(@class,'list column first')]/li/a[contains(@class,'top-level-genre')]")
 	for cat in cats:
 		cur_url = HtmlTool.get_attrib(cat, "@href")
 		cur_url = urlparse.urljoin(url, cur_url)
@@ -418,30 +403,27 @@ def parse_main(url, queue, worker, iter_count):
 	return
 
 
-
 def parse_category(url, queue, worker, iter_count):
-
 	page = get_page_content(url, worker.socks_proxy_port, worker.log_prefix)
 	if not page:
 		log(worker.log_prefix, "ERROR get_page_content ", url)
 		worker.db.add_failed_url(url)
 		return
 
-
 	tree = etree.HTML(page)
 
 	if not is_cat_ok(tree):
-		if iter_count<10:
-			queue.put((url, parse_category, iter_count+1))
-			log(worker.log_prefix, "FATALL retrying#",str(iter_count), " ", url)
+		if iter_count < 10:
+			queue.put((url, parse_category, iter_count + 1))
+			log(worker.log_prefix, "FATALL retrying#", str(iter_count), " ", url)
 		else:
 			worker.db.add_failed_url(url)
 			log(worker.log_prefix, "FATALL err ", url)
 		return
 
-	subcats = tree.xpath("//div[@id='genre-nav']//ul[contains(@class,'list column first')]/li//ul[contains(@class,'top-level-subgenres')]/li/a")
+	subcats = tree.xpath(
+		"//div[@id='genre-nav']//ul[contains(@class,'list column first')]/li//ul[contains(@class,'top-level-subgenres')]/li/a")
 	for s in subcats:
-
 		cur_url = HtmlTool.get_attrib(s, "@href")
 		cur_url = urlparse.urljoin(url, cur_url)
 
@@ -451,7 +433,8 @@ def parse_category(url, queue, worker, iter_count):
 
 	return
 
-def parse_subcategory(url, queue, worker, iter_count, tree = None):
+
+def parse_subcategory(url, queue, worker, iter_count, tree=None):
 	'''
 	:param url:
 	:param queue:
@@ -472,9 +455,9 @@ def parse_subcategory(url, queue, worker, iter_count, tree = None):
 		tree = etree.HTML(page)
 
 		if not is_cat_ok(tree):
-			if iter_count<10:
-				queue.put((url, parse_subcategory, iter_count+1))
-				log(worker.log_prefix, "FATALL retrying#",str(iter_count), " ", url)
+			if iter_count < 10:
+				queue.put((url, parse_subcategory, iter_count + 1))
+				log(worker.log_prefix, "FATALL retrying#", str(iter_count), " ", url)
 			else:
 				worker.db.add_failed_url(url)
 				log(worker.log_prefix, "FATALL err ", url)
@@ -489,8 +472,8 @@ def parse_subcategory(url, queue, worker, iter_count, tree = None):
 
 	return
 
-def parse_cat_letter(url, queue, worker, iter_count):
 
+def parse_cat_letter(url, queue, worker, iter_count):
 	page = get_page_content(url, worker.socks_proxy_port, worker.log_prefix)
 	if not page:
 		log(worker.log_prefix, "ERROR get_page_content ", url)
@@ -500,22 +483,21 @@ def parse_cat_letter(url, queue, worker, iter_count):
 	tree = etree.HTML(page)
 
 	if not is_cat_ok(tree):
-		if iter_count<10:
-			queue.put((url, parse_cat_letter, iter_count+1))
-			log(worker.log_prefix, "FATALL retrying#",str(iter_count), " ", url)
+		if iter_count < 10:
+			queue.put((url, parse_cat_letter, iter_count + 1))
+			log(worker.log_prefix, "FATALL retrying#", str(iter_count), " ", url)
 		else:
 			worker.db.add_failed_url(url)
 			log(worker.log_prefix, "FATALL err ", url)
 		return
 
-
-	nextpage = tree.xpath("//div[@id='selectedgenre']/ul[contains(@class,'list paginate')][1]/li[a[contains(@class,'selected')]]/following-sibling::li[1]/a")
+	nextpage = tree.xpath(
+		"//div[@id='selectedgenre']/ul[contains(@class,'list paginate')][1]/li[a[contains(@class,'selected')]]/following-sibling::li[1]/a")
 	if not nextpage is None and len(nextpage):
 		cur_url = HtmlTool.get_attrib(nextpage[0], "@href")
 		cur_url = urlparse.urljoin(url, cur_url)
 
 		queue.put((cur_url, parse_cat_letter))
-
 
 	apps = tree.xpath("//div[@id='selectedcontent']/div[contains(@class,'column')]/ul/li/a")
 	for a in apps:
@@ -533,18 +515,17 @@ def parse_cat_letter(url, queue, worker, iter_count):
 			worker.db.add_failed_url(cur_url)
 			continue
 
-
 		if worker.db.db_exist_entry(app_id):
 			continue
 
 		queue.put((cur_url, parse_app))
 
-
 	return
+
 
 def parse_app(url, queue, worker, iter_count):
 	try:
-		parse_app1(url,queue, worker, iter_count)
+		parse_app1(url, queue, worker, iter_count)
 	except Exception as ex:
 		log(worker.log_prefix, "ERROR parse_app ", url)
 		log(str(ex))
@@ -552,16 +533,7 @@ def parse_app(url, queue, worker, iter_count):
 	return
 
 
-def get_app_id_from_url(url):
-	parse_object = urlparse.urlparse(url)
-	app_id = basename(parse_object.path)
-	if not app_id.startswith("id"):
-		return ""
-
-	return app_id
-
 def parse_app1(url, queue, worker, iter_count):
-
 	app_id = get_app_id_from_url(url)
 	if not app_id:
 		log(worker.log_prefix, "FATAL ERROR wrong app_id ", url)
@@ -579,32 +551,35 @@ def parse_app1(url, queue, worker, iter_count):
 
 	tree = etree.HTML(page)
 
-	app_name = HtmlTool.get_single_result_text(tree,"//div[@id='content']//div[@id='title']//h1[@itemprop='name']", True)
+	app_name = HtmlTool.get_single_result_text(tree, "//div[@id='content']//div[@id='title']//h1[@itemprop='name']",
+											   True)
 
 	if not app_name:
-		if iter_count<10:
-			queue.put((url, parse_app, iter_count+1))
-			log(worker.log_prefix, "FATALL retrying#",str(iter_count), " ", url)
+		if iter_count < 10:
+			queue.put((url, parse_app, iter_count + 1))
+			log(worker.log_prefix, "FATALL retrying#", str(iter_count), " ", url)
 		else:
 			worker.db.add_failed_url(url)
 			log(worker.log_prefix, "FATALL err ", url)
 		return
 
-
-
 	app_release_date = ""
-	dd = HtmlTool.get_attrib(tree,"//div[@id='left-stack']//li[contains(@class,'release-date')]//span[@itemprop='datePublished']/@content", True)
+	dd = HtmlTool.get_attrib(tree,
+							 "//div[@id='left-stack']//li[contains(@class,'release-date')]//span[@itemprop='datePublished']/@content",
+							 True)
 	if not dd is None:
 		dd = dd.split(" ")
-		if len(dd)==3:
+		if len(dd) == 3:
 			app_release_date = dd[0]
 		else:
 			log(worker.log_prefix, "ERROR app_release_date ", " ".join(dd), " ", url)
 
-	author = HtmlTool.get_single_result_text(tree,"//div[@id='left-stack']//*[@itemprop='author']/*[@itemprop='name']", True)
-	price = HtmlTool.get_single_result_text(tree,"//div[@id='left-stack']//*[@itemprop='offers']/*[@itemprop='price']", True)
+	author = HtmlTool.get_single_result_text(tree, "//div[@id='left-stack']//*[@itemprop='author']/*[@itemprop='name']",
+											 True)
+	price = HtmlTool.get_single_result_text(tree, "//div[@id='left-stack']//*[@itemprop='offers']/*[@itemprop='price']",
+											True)
 
-	img_url = HtmlTool.get_attrib(tree,"//div[@id='left-stack']//*[@itemprop='image']/@content", True)
+	img_url = HtmlTool.get_attrib(tree, "//div[@id='left-stack']//*[@itemprop='image']/@content", True)
 	img_file_name = ""
 	if img_url:
 
@@ -622,9 +597,9 @@ def parse_app1(url, queue, worker, iter_count):
 
 		imgtype = imghdr.what(img_file_path)
 		extension = ""
-		if imgtype=="jpeg":
+		if imgtype == "jpeg":
 			extension = ".jpg"
-		elif imgtype=="png":
+		elif imgtype == "png":
 			extension = ".png"
 
 		if not extension:
@@ -643,7 +618,7 @@ def parse_app1(url, queue, worker, iter_count):
 
 		os.rename(img_file_path, new_img_path)
 
-	#["app_name", "app_release_date", "author", "price", "img_filename", "url"]
+	# ["app_name", "app_release_date", "author", "price", "img_filename", "url"]
 	item = [
 		app_name,
 		app_release_date,
@@ -657,10 +632,7 @@ def parse_app1(url, queue, worker, iter_count):
 	return
 
 
-
-
 def do_job():
-
 	db = DbStuff(m_profiles_filename, m_csv_filename, m_csv_col_names, m_failed_urls_filename)
 
 	m_workers = []
@@ -672,18 +644,14 @@ def do_job():
 	if not os.path.exists(m_imgdir_path):
 		os.makedirs(m_imgdir_path)
 
-
-
 	for i in range(m_num_workers):
-
 		worker = Worker(
 			m_queue,
-			socks_proxy_port=m_socks_proxy_base_port+i if m_socks_proxy_base_port else 0,
-			thread_id=i+1,
+			socks_proxy_port=m_socks_proxy_base_port + i if m_socks_proxy_base_port else 0,
+			thread_id=i + 1,
 			db=db)
 
 		m_workers.append(worker)
-
 
 	for w in m_workers:
 		w.start()
@@ -691,13 +659,12 @@ def do_job():
 	starturl = "https://itunes.apple.com/us/genre/ios-books/id6018?mt=8"
 	m_queue.put((starturl, parse_main))
 
-
 	log("waiting workers")
 
 	m_queue.join()
 	log("all tasks done")
 
-	#Send a 'signal' to workers to finish
+	# Send a 'signal' to workers to finish
 	m_queue.put(None)
 
 	for w in m_workers:
@@ -712,7 +679,6 @@ def do_job():
 
 
 if __name__ == "__main__":
-
 
 	try:
 
